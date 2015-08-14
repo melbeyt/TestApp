@@ -77,6 +77,7 @@
         document.addEventListener("deviceready", function(){
             $('#login').click(function(e) {
                 e.preventDefault();
+                alert("in0");
                 var ref = window.open(getAuthorizeUrl(loginUrl, clientId, redirectUri), 
                                       '_blank', 'location=no,toolbar=no');
                 alert("in");
