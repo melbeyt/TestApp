@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<!-- <html>
+    <head>
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *">
+        <meta name="format-detection" content="telephone=no">
+        <meta name="msapplication-tap-highlight" content="no">
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+        <link rel="stylesheet" type="text/css" href="css/index.css">
+
+        <link rel="stylesheet" href="libs/bootstrap/css/bootstrap.css" type="text/css" />
+        <link rel="stylesheet" href="assets/css/styles.css" type="text/css" />
+
+        <script type="text/javascript" src="libs/zepto/zepto.js"></script>
+        <script type="text/javascript" src="libs/forcetk/forcetk.js"></script>
+        <script type="text/javascript" src="cordova-1.7.0.js"></script>
+        <script type="text/javascript" src="libs/ChildBrowser/www/ChildBrowser.js"></script>   
+        <script type="text/javascript" src="libs/mustache.js-master/mustache.js"></script>       
+        <script type="text/javascript" src="js/salesforceWrapper.js"></script>         
+        <script type="text/javascript" src="js/application.js"></script>            
+
+
+        <title>Hello World</title>
+    </head>
+    <body>
+        <div class="app">
+            <h1>Apache Cordova</h1>
+            <div id="deviceready" class="blink">
+                <p class="event listening">Connecting to Device</p>
+                <p class="event received">Device is Ready</p>
+            </div>
+        </div>
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/index.js"></script>
+    </body>
+</html> -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ForceTK Demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no;" />
+
+    <link rel="stylesheet" href="libs/jquery-mobile/css/jquery.mobile-1.4.5.min.css" />
+    <script type="text/javascript" src="libs/jquery-mobile/js/jquery-1.11.3.min.js" />
+    <script type="text/javascript" src="libs/jquery-mobile/js/jquery.popupwindow.js" />
+
+    <script type="text/javascript" src="libs/jquery-mobile/plugin/Popup/assets/js/jquery.popup.js" security="none" ></script>
+    <script type="text/javascript" src="libs/jquery-mobile/js/jquery.mobile-1.4.5.min.js" />
+    <script type="text/javascript" src="libs/forcetk/forcetk.js" />
+    <!-- <script type="text/javascript" src="libs/jquery-mobile/js/mobileapp.js"></script> -->
+    
+    <script type="text/javascript" src="cordova.js"></script>
+    <script type="text/javascript">
+        // OAuth Configuration
+        var loginUrl    = 'https://login.salesforce.com/';
+        var clientId    = '3MVG98SW_UPr.JFgjZIWksMdw91FKVpURBPEqCPu93pIusft.hoCBpP6QUMl9OYySrXtcqPniIZubSFWpCytZ';
+        var redirectUri = 'mysampleapp://auth/success';
+        //var redirectUri = 'https://login.salesforce.com/services/oauth2/success';
+        
+        //var redirectUri = 'https://localhost/oauthcallback.html';
+        // var redirectUri = 'https://localhost/jsapp/oauthcallback.html';
+        //var proxyUrl    = 'https://localhost/jsapp/proxy.php?mode=native';
+
+
+        var client = new forcetk.Client(clientId, loginUrl);
+
+        // Make our own startsWith utility fn
+        if (!String.prototype.startsWith) {
+          String.prototype.startsWith = function(searchString, position) {
+            position = position || 0;
+            return this.lastIndexOf(searchString, position) === position;
+          };
+        }
+
+        document.addEventListener("deviceready", function(){
+            $('#login').click(function(e) {
+                e.preventDefault();
+                var ref = window.open(getAuthorizeUrl(loginUrl, clientId, redirectUri), 
+                                      '_blank', 'location=no,toolbar=no');
+                alert("in");
+                ref.addEventListener('loadstop', function(evt) {
+                    alert("in1");
+                    if (evt.url.startsWith(redirectUri)) {
+                        ref.close();
+                        alert("in2");
+                        sessionCallback(unescape(evt.url));
+                    }
+                });
+            });
+        });
+
+        function getAuthorizeUrl(loginUrl, clientId, redirectUri){
+            return loginUrl+'services/oauth2/authorize?display=touch'
+                +'&response_type=token&client_id='+escape(clientId)
+                +'&redirect_uri='+escape(redirectUri);
+        }
+
+        function sessionCallback(loc) {
+            var oauthResponse = {};
+
+            var fragment = loc.split("#")[1];
+
+            if (fragment) {
+                var nvps = fragment.split('&');
+                for (var nvp in nvps) {
+                    var parts = nvps[nvp].split('=');
+                    oauthResponse[parts[0]] = unescape(parts[1]);
+                }
+            }
+
+            if (typeof oauthResponse === 'undefined'
+                || typeof oauthResponse['access_token'] === 'undefined') {
+                alert("Unauthorized: No OAuth response");
+            } else {
+                client.setSessionToken(oauthResponse.access_token, null,
+                    oauthResponse.instance_url);
+
+                client.query("SELECT Name FROM Account LIMIT 1", 
+                    function(response){
+                        $('#message').text('The first account I see is '
+                        +response.records[0].Name);
+                    }
+                );
+            }
+        }
+
+// $(document).ready(function() {
+//     $('#login').popupWindow({ 
+//         windowURL: getAuthorizeUrl(loginUrl, clientId, redirectUri),
+//         windowName: 'Connect',
+//         centerBrowser: 1,
+//         height:480, 
+//         width:320
+//     });
+// });
+// function getAuthorizeUrl(loginUrl, clientId, redirectUri){
+//     return loginUrl+'services/oauth2/authorize?display=touch'
+//         +'&response_type=token&client_id='+escape(clientId)
+//         +'&redirect_uri='+escape(redirectUri);
+// }
+// function sessionCallback(oauthResponse) {
+//     if (typeof oauthResponse === 'undefined'
+//         || typeof oauthResponse['access_token'] === 'undefined') {
+//         errorCallback({
+//             status: 0, 
+//             statusText: 'Unauthorized', 
+//             responseText: 'No OAuth response'
+//         });
+//     } else {
+//         client.setSessionToken(oauthResponse.access_token, null,
+//             oauthResponse.instance_url);
+//         addClickListeners();
+//         $.mobile.changePage('#mainpage',"slide",false,true);
+//         $.mobile.pageLoading();
+//         getAccounts(function(){
+//             $.mobile.pageLoading(true);
+//         });
+//     }
+// }
+
+    </script>
+  </head>
+  <body>
+    <button id="login">Click here to login</button>
+    <p id="message"></p>
+  </body>
+<!-- <body>
+    <div data-role="page" data-theme="b" id="loginpage">
+
+        <div data-role="header">
+            <h1>Login</h1>
+        </div>
+        <div data-role="content">
+            <form>
+                <button data-role="button" id="login">Login</button>
+            </form>
+        </div>
+        <div data-role="footer">
+            <h4>Force.com</h4>
+        </div>
+    </div>
+    <div data-role="page" data-theme="b" id="mainpage">
+
+        <div data-role="header">
+            <h1>Account List</h1>
+        </div>
+        <div data-role="content">
+            <form>
+                <button data-role="button" id="newbtn">New</button>
+            </form>
+            <ul id="accountlist" data-inset="true" data-role="listview" 
+              data-theme="c" data-dividertheme="b">
+            </ul>
+        </div>
+        <div data-role="footer">
+            <h4>Force.com</h4>
+        </div>
+    </div>
+    <div data-role="page" data-theme="b" id="detailpage">
+        <div data-role="header">
+            <h1>Account Detail</h1>
+        </div>
+        <div data-role="content">
+            <table>
+                <tr><td>Account Name:</td><td id="Name"></td></tr>
+                <tr><td>Industry:</td><td id="Industry"></td></tr>
+                <tr><td>Ticker Symbol:</td><td id="TickerSymbol"></td></tr>
+            </table>
+            <form name="accountdetail" id="accountdetail">
+                <input type="hidden" name="Id" id="Id" />
+                <button data-role="button" id="editbtn">Edit</button>
+                <button data-role="button" id="deletebtn" data-icon="delete" 
+                  data-theme="e">Delete</button>
+            </form>
+        </div>
+        <div data-role="footer">
+            <h4>Force.com</h4>
+        </div>
+    </div>
+    <div data-role="page" data-theme="b" id="editpage">
+        <div data-role="header">
+            <h1 id="accformheader">New Account</h1>
+        </div>
+        <div data-role="content">
+            <form name="accountform" id="accountform">
+                <input type="hidden" name="Id" id="Id" />
+                <table>
+                    <tr>
+                        <td>Account Name:</td>
+                        <td><input name="Name" id="Name" data-theme="c"/></td>
+                    </tr>
+                    <tr>
+                        <td>Industry:</td>
+                        <td><input name="Industry" id="Industry" 
+                          data-theme="c"/></td>
+                    </tr>
+                    <tr>
+                        <td>Ticker Symbol:</td>
+                        <td><input name="TickerSymbol" id="TickerSymbol" 
+                          data-theme="c"/></td>
+                    </tr>
+                </table>
+                <button data-role="button" id="actionbtn">Action</button>
+            </form>
+        </div>
+        <div data-role="footer">
+            <h4>Force.com</h4>
+        </div>
+    </div>
+</body> -->
+
+
+</html>
